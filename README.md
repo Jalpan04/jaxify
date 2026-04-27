@@ -1,58 +1,80 @@
 # Jaxify Downloader
 
-Jaxify Downloader is an automated, API-free Spotify playlist downloader accessible via a clean, minimalist local Web UI. It seamlessly orchestrates scraping, downloading, and high-quality metadata tagging, converting Spotify playlists into perfectly organized local music libraries.
+Jaxify Downloader is a high-performance, automated Spotify playlist downloader that operates entirely without official Spotify API keys. It utilizes Playwright for metadata scraping, yt-dlp for high-quality audio extraction, and Mutagen for precision ID3/Vorbis metadata tagging. The system is managed through a lightweight Flask-based Web UI that provides real-time status updates and progress tracking.
 
-## ✨ Features
+## Core Features
 
-- **No API Keys Required:** Uses Playwright to stealth-scrape playlist metadata and high-resolution cover art directly from the web.
-- **Minimalist Web UI:** A lightweight Flask server provides a clean graphical interface with real-time SSE (Server-Sent Events) progress bars and operational logs.
-- **Smart Folder Organization:** Automatically detects the exact playlist name and creates a dedicated folder, saving the playlist's master cover art inside.
-- **Native High-Quality Audio:** Multi-threaded integration with `yt-dlp` extracts pure Opus audio streams directly from YouTube Music, completely bypassing lossy format transcoding.
-- **Precision ID3 Tagging:** Uses exact index matching to tag each downloaded `.opus` file with the correct Title, Artist, Album, and embedded Cover Art using Mutagen.
-- **Live Error Handling:** Real-time error box captures and displays dropped tracks, skipped downloads, or conversion failures during the process without crashing.
+- API-Free Operation: Uses automated browser interaction via Playwright to extract playlist details, bypassing the need for Spotify Developer tokens or rate limits.
+- Precise Metadata Tagging: Employs a strict track-index matching system (001, 002, etc.) to ensure that every downloaded file is tagged with the exact Title, Artist, Album, and Cover Art scraped from the original playlist.
+- Native Opus Audio: Configured to download 251kbps Opus streams directly from YouTube Music servers, ensuring zero transcoding loss and superior audio quality compared to standard MP3 conversions.
+- Dynamic File Organization: Automatically parses the playlist name to create dedicated directories and saves the high-resolution playlist cover as cover.jpg within the folder.
+- Real-Time Monitoring: Features a Server-Sent Events (SSE) powered web interface that displays a live console log, exact progress percentages, and a dedicated error reporting window.
 
-## 🚀 Installation & Setup
+## System Prerequisites
 
-1. **Clone the Repository:**
+Before running Jaxify, ensure the following components are installed on your system:
+
+- Python 3.8 or higher
+- FFmpeg: Required by yt-dlp for audio muxing and processing. Ensure 'ffmpeg' is accessible in your system's PATH.
+- Playwright: Required for the scraping engine.
+- Internet Connection: Required for scraping and high-speed audio downloading.
+
+## Installation
+
+1. Clone the repository:
    ```bash
    git clone https://github.com/Jalpan04/jaxify.git
    cd jaxify
    ```
 
-2. **Install Dependencies:**
-   Ensure you have Python 3.8+ installed.
+2. Install the required Python packages:
    ```bash
-   pip install flask playwright yt-dlp mutagen requests
+   pip install flask playwright yt-dlp mutagen requests rapidfuzz
    ```
 
-3. **Install Playwright Browsers:**
-   Jaxify requires Chromium to scrape Spotify locally.
+3. Initialize the Playwright browser engine:
    ```bash
    playwright install chromium
    ```
 
-4. **Install FFmpeg:**
-   `yt-dlp` requires FFmpeg for audio extraction and muxing. Make sure `ffmpeg` is installed and added to your system's PATH.
+## Technical Architecture
 
-## 💻 Usage
+The application operates as a sequential three-step pipeline orchestrated by the Flask backend:
 
-1. **Start the Web Server:**
+### Step 1: Scraper (step1_scrape.py)
+This module launches a headless Chromium instance to navigate the Spotify playlist URL. It automatically scrolls the page to ensure all track rows are loaded in the DOM. It extracts:
+- Track Title and Artists
+- Album Name
+- High-resolution Album Cover URL
+- Playlist Name and Playlist Cover
+
+### Step 2: Downloader (step2_download.py)
+Utilizing a multi-threaded thread pool (4 concurrent workers), this module searches YouTube Music for each track. To maintain 100% accuracy, it prepends the track's index to the filename (e.g., 005 - Song Title.opus). This prevents matching errors caused by variations in YouTube video titles.
+
+### Step 3: Metadata Tagger (step3_metadata.py)
+This final module maps the downloaded files back to the JSON metadata generated in Step 1 using the index prefix. It performs the following operations:
+- Downloads and caches album cover art.
+- Embeds metadata tags (Title, Artist, Album, Track Number, URL) into the Opus file.
+- Injects the cover art image into the file headers.
+- Cleans up the directory by removing the index prefix and temporary files, leaving only the polished audio files.
+
+## Running the Application
+
+1. Launch the server:
    ```bash
    python app.py
    ```
-2. **Open the UI:**
-   Navigate to `http://127.0.0.1:5000` in your web browser.
-3. **Download:**
-   - Paste a public Spotify Playlist URL.
-   - Select your target Save Location.
-   - Click "Start Download" and watch the magic happen in real-time!
+2. Access the interface:
+   Open your browser and navigate to http://127.0.0.1:5000
+3. Configuration:
+   - Enter the public Spotify Playlist URL.
+   - Choose your target save directory using the folder picker.
+   - Click "Start Download" to begin the process.
 
-## ⚙️ How It Works (The 3-Step Pipeline)
+## Error Handling
 
-1. **`step1_scrape.py`**: A headless Chromium browser opens the Spotify URL, auto-scrolls to load all tracks, and extracts exact artist, title, and cover art data into a local `tracklist.json` and query list.
-2. **`step2_download.py`**: A multi-threaded worker spawns parallel `yt-dlp` instances. It prepends an exact track index number (`001 - ...`) to filenames to ensure zero fuzzy-matching errors.
-3. **`step3_metadata.py`**: Reads the numbered files, perfectly maps them back to the scraped JSON metadata, embeds the high-res cover art, strips the index numbers, and leaves beautifully named `Song Title.opus` files ready for your music player.
+The application includes a robust error detection system. Any issues encountered—such as failed YouTube searches, conversion errors, or missing metadata—are captured in real-time and displayed in a red Error Window at the bottom of the Web UI. This ensures that the overall process continues even if individual tracks encounter issues.
 
-## ⚠️ Disclaimer
+## Disclaimer
 
-This tool is created for educational purposes and personal backups only. Do not use this tool to download copyrighted material without permission.
+This software is intended for personal backup and educational purposes only. Users are responsible for complying with local laws and the terms of service of the platforms involved.
