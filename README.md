@@ -1,5 +1,7 @@
 # Jaxify Downloader
 
+![GitHub top language](https://img.shields.io/github/languages/top/Jalpan04/jaxify) ![GitHub repo size](https://img.shields.io/github/repo-size/Jalpan04/jaxify) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Jaxify Downloader is a high-performance, automated Spotify playlist downloader that operates entirely without official Spotify API keys. It utilizes Playwright for metadata scraping, yt-dlp for high-quality audio extraction, and Mutagen for precision ID3/Vorbis metadata tagging. The system is managed through a lightweight Flask-based Web UI that provides real-time status updates and progress tracking.
 
 ## Core Features
